@@ -119,3 +119,7 @@ ENV/
 
 #Binaries
 bin/
+
+#Emacs backup files
+*~
+.#*

@@ -1,0 +1,38 @@
+0)Download and setup https://github.com/q1x/zabbix-gnomes 
+
+#######
+
+1)  Trouver lien entre switch-Interface et Host
+2)  Avoir le trigger "Interface down" enabled
+3)  Aller dans Configuration --> Actions
+4)  Dans Event Source choisir Trigger
+5)  Create Action
+6)  Dans new condition, selectionner Trigger = <NomDuTrigger>
+7)  Dans opération, Créer une nouvelle opération.
+8)  Sélectionner "Remote command" dans Operation Type
+9)  Target List = Current Host
+10) Type : Custom Script
+11) Execute on : Zabbix Server
+12) Commands :
+bash -c "source <CheminVersVirtualEnv> && python <Path>/zhostupdater.py -c <Path>/.zbx.conf -D <NomHost>"
+
+13) Valider puis sur Recovery Opérations
+14) Cliquer sur New dans Opérations
+15) Operation Type : "Remote Command"
+16)  Target List = Current Host
+17) Type : Custom Script
+18) Execute on : Zabbix	Server
+19) Commands :
+bash -c "source <CheminVersVirtualEnv> && python <Path>/zhostupdater.py -c <Path>/.zbx.conf -E <NomHost>"
+
+20) Valider puis sur cliquer sur Add.
+
+21)Tester
+
+#######################
+
+NOTES :
+
+-Aide rédigée pour Zabbix 4.0.0alpha74.0
+-Dans cet exemple, python sera dans un Virtual-env, il suffit de retirer la commande de venv si on en veut pas.
+-Dans sa configuration de base, zabbix est en mode no-login et utilise sh. D'ou l'appel au bash.
