@@ -145,32 +145,27 @@ else:
     key = 'vm.memory.pused[memoryUsedPercentage.'
 hosts,items = selectHosts(hosts)
 print "End of research"
-print "End of research"
-#for i in range(len(hosts)):
-print "About " + hosts[0]
-if (zapi.trigger.get(filter={'host': hosts[0]},search={'description':'#PythonScriptMemory:'}) == []):
-    triggers = zapi.trigger.get(filter={'host': hosts[0]},search={'description':'High memory utilization : '})
-    for trigger in triggers :
-        print trigger['description']
-    """
+for i in range(len(hosts)):
+    print "About " + hosts[i]
+    if (zapi.trigger.get(filter={'host': hosts[i]},search={'description':'#PythonScriptMemory:'}) == []):
+        triggers = zapi.trigger.get(filter={'host': hosts[i]},search={'description':'High memory utilization : '})
         final = "("
         for j in range(len(items[i])-1):
             final = final + "{"+hosts[i]+":"+items[i][j]['key_']+".avg(5m)} +"
 
-        final = final +  "{"+hosts[i]+":"+items[i][len(items[i])-1]['key_']+".avg(5m)})/"+str(len(items[i]))+">{$CPU_UTIL_MAX}"
+        final = final +  "{"+hosts[i]+":"+items[i][len(items[i])-1]['key_']+".avg(5m)})/"+str(len(items[i]))+">{$MEMORY_UTIL_MAX}"
         print "Trigger will be :"
         print final
         print "Create trigger"
         zapi.trigger.create(
             {'status':0,
-             'description':'#PythonScriptCPU: High CPU utilization : {ITEM.LASTVALUE}',
+             'description':'#PythonScriptMemory: High memory utilization : {ITEM.LASTVALUE}',
              'priority': 3,
              'comments': 'Last value: {ITEM.LASTVALUE1}.',
              'expression': final})
-        print ("Done\nDisabling 'High CPU utilization triggers for "+ hosts[i])
+        print ("Done\nDisabling 'High memory utilization triggers for "+ hosts[i])
         for j in range(len(triggers)):
             zapi.trigger.update(triggerid=triggers[j]['triggerid'],status=1)
         print "Done"
     else:
         print "Already has trigger."
-"""
