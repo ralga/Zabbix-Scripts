@@ -3,6 +3,7 @@
 # import needed modules.
 # pyzabbix is needed, see https://github.com/lukecyca/pyzabbix
 #
+import datetime
 import argparse
 import ConfigParser
 import os
@@ -30,6 +31,9 @@ def ConfigSectionMap(section):
                 dict1[option] = None
     return dict1
 
+# Print when the script started
+now = datetime.datetime.now()
+print ("Started at : " + now.strftime("%Y-%m-%d %H:%M"))
 
 # set default vars
 defconf = os.getenv("HOME") + "/.zbx.conf"
@@ -57,7 +61,7 @@ parser.add_argument('--no-verify', help='Disables certificate validation when us
 parser.add_argument('-c','--config', help='Config file location (defaults to $HOME/.zbx.conf)')
 parser.add_argument('-k','--key',help='Key to select items')
 parser.add_argument('-T','--trigger',help='Triggers name to disable. Can be incomplete')
-parser.add_argument('-N','--no-run',help='Print what will be done without doing any modification //NOT IMPLEMENTED YET',action='store_true')
+parser.add_argument('-N','--no-run',help='Print what will be done without doing any modification',action='store_true')
 parser.add_argument('-t','--tag',help='Define the tag next #PythonScript in trigger\'s title')
 parser.add_argument('-v','--threshold',help='Threshold of the calculated value, can be a MACRO.')
 parser.add_argument('-O','--override',help='Will override current mean trigger if already exist.',action='store_true')
@@ -167,41 +171,46 @@ def override(host):
             zapi.trigger.delete(trigger[0]['triggerid'])
 
 def modifyHost(host, triggers, final):
+    prio = 0
+    print ("Disabling triggers for "+ host)
+    for j in range(len(triggers)):
+        prio += int(triggers[j]['priority'])
+        print "     " + triggers[j]['description'] + " Disabled"
+        zapi.trigger.update(triggerid=triggers[j]['triggerid'],status=1)
     print "Create trigger"
     zapi.trigger.create(
         {'status':0,
-         'description':'#PythonScript'+tag+': '+ triggerName +' : {ITEM.LASTVALUE}',
-         'priority': 3,
+         'description':'#PythonScript'+tag+': '+ triggerName +'{ITEM.LASTVALUE}',
+         'priority': int(round(prio/len(triggers))),
          'comments': 'Last value: {ITEM.LASTVALUE1}.',
          'expression': final})
-    print ("Done\nDisabling 'High memory utilization triggers for "+ host)
-    for j in range(len(triggers)):
-        zapi.trigger.update(triggerid=triggers[j]['triggerid'],status=1)
     print "Done"
 
-key = args.key
-if (args.no_run):
-    print ("\n\nNo run, will simulate but won't modify\n\n")
-print "Starting research for " + key
-hosts=getHosts()
-triggerName = args.trigger
-hosts,items = selectHosts(hosts)
-print "End of research"
+if __name__ == "__main__":
+    key = args.key
+    if (args.no_run):
+        print ("\n\nNo run, will simulate but won't modify\n\n")
+    print "Starting research for " + key
+    hosts=getHosts()
+    triggerName = args.trigger
+    hosts,items = selectHosts(hosts)
+    print "End of research\n"
+    
+    for i in range(len(hosts)):
+        print "About " + hosts[i]
+        if (args.override) :
+            override(hosts[i])
+        if (zapi.trigger.get(filter={'host': hosts[i]},search={'description':'#PythonScript' + tag+": "}) == [] or (args.no_run and args.override)):
+            triggers = zapi.trigger.get(filter={'host': hosts[i]},search={'description':triggerName})
+            final = "("
+            for j in range(len(items[i])-1):
+                final = final + "{"+hosts[i]+":"+items[i][j]['key_']+".avg(5m)} +"
 
-for i in range(len(hosts)):
-    print "About " + hosts[i]
-    if (args.override) :
-        override(hosts[i])
-    if (zapi.trigger.get(filter={'host': hosts[i]},search={'description':'#PythonScript' + tag+": "}) == [] or (args.no_run and args.override)):
-        triggers = zapi.trigger.get(filter={'host': hosts[i]},search={'description':triggerName})
-        final = "("
-        for j in range(len(items[i])-1):
-            final = final + "{"+hosts[i]+":"+items[i][j]['key_']+".avg(5m)} +"
-
-        final = final +  "{"+hosts[i]+":"+items[i][len(items[i])-1]['key_']+".avg(5m)})/"+str(len(items[i]))+">"+str(args.threshold)
-        print "Trigger will be :"
-        print final + "\n"
-        if (not args.no_run):
-            modifyHost(hosts[i],triggers,final)
-    else:
-        print "Already has trigger.\n"
+            final = final +  "{"+hosts[i]+":"+items[i][len(items[i])-1]['key_']+".avg(5m)})/"+str(len(items[i]))+">"+str(args.threshold)
+            print "Trigger will be :"
+            print final
+            if (not args.no_run):
+                modifyHost(hosts[i],triggers,final)
+            print "Finished \n"
+        else:
+            print "Already has trigger.\n"
