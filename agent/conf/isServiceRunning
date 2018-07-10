@@ -1,0 +1,9 @@
+#!/bin/bash
+
+RUN=`systemctl status $1 | grep -o running`
+if [ -n "$RUN" ] 
+then
+    echo 1
+else
+    echo 0
+fi
