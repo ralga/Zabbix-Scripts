@@ -164,11 +164,52 @@ def getHosts():
     return aux
 
 def override(host):
+    item = zapi.item.get(filter={'host': host},search={'key_':key+'.mean]'})
+    if item != []:
+        print ("Already existing item, will override.")
+        if(not args.no_run):
+            zapi.item.delete(item[0]['itemid'])
     trigger = (zapi.trigger.get(filter={'host': host},search={'description':'#PythonScript' + tag+": "}))
     if trigger != []:
         print ("Already existing trigger, will override.")
         if(not args.no_run):
             zapi.trigger.delete(trigger[0]['triggerid'])
+
+def createGraph(itemid):
+    print("Creating Graph")
+    zapi.graph.create({'gitems':[{"itemid": itemid,"color": "1A7C11"}],
+                      'height':200,
+                      'name':'#PythonScript : '+tag+' mean',
+                      'width':900})
+
+def createItem(host):
+    print ("Calculating item's parameters")
+    hostid = zapi.host.get(filter={'name':host})[0]['hostid']
+    interface = zapi.hostinterface.get(filter={'hostid':hostid})[0]['interfaceid']
+    appli = zapi.application.get(filter={'hostid':hostid},search={'name':tag})[0]['applicationid']
+    items = zapi.item.get(filter={'host':host},search={'key_':key})
+    itemkey=key+".mean]"
+    equation = "("
+    for i in range(len(items)-1):
+        equation += "avg("+items[i]['key_']+",5m)+"
+    equation += "avg("+items[i+1]['key_']+",5m))/"+str(len(items))
+    print ("The item's key will be : " + equation)
+    if(not args.no_run):
+        print ("Creating item")
+        zapi.item.create(
+            {'delay':items[0]['delay'],
+             'hostid':hostid,
+             'interfaceid':interface,
+             'key_':itemkey,
+             'name':'#PythonScript ' + tag + ': mean',
+             'type':15,
+             'value_type':0,
+             'params':equation,
+             'applications':[appli]})
+        createGraph(zapi.item.get(filter={'host':host,'key_':itemkey})[0]['itemid'])
+    return itemkey
+    
+
 
 def modifyHost(host, triggers, final):
     prio = 0
@@ -188,25 +229,28 @@ def modifyHost(host, triggers, final):
 
 if __name__ == "__main__":
     key = args.key
-    if (args.no_run):
-        print ("\n\nNo run, will simulate but won't modify\n\n")
+    if (args.no_run or args.override):
+        print ("\n\n")
+        if(args.no_run):
+            print ("No run mode. Nothing will change")
+        if(args.override):
+            print ("Override mode, will delete already existing item/trigger")
+        print ("\n\n")
     print "Starting research for " + key
     hosts=getHosts()
     triggerName = args.trigger
     hosts,items = selectHosts(hosts)
     print "End of research\n"
-    
+
     for i in range(len(hosts)):
         print "About " + hosts[i]
         if (args.override) :
             override(hosts[i])
         if (zapi.trigger.get(filter={'host': hosts[i]},search={'description':'#PythonScript' + tag+": "}) == [] or (args.no_run and args.override)):
+            itemkey = createItem(hosts[i])
             triggers = zapi.trigger.get(filter={'host': hosts[i]},search={'description':triggerName})
-            final = "("
-            for j in range(len(items[i])-1):
-                final = final + "{"+hosts[i]+":"+items[i][j]['key_']+".avg(5m)} +"
-
-            final = final +  "{"+hosts[i]+":"+items[i][len(items[i])-1]['key_']+".avg(5m)})/"+str(len(items[i]))+">"+str(args.threshold)
+    
+            final = "{"+hosts[i]+":"+itemkey+".last()}>"+str(args.threshold)
             print "Trigger will be :"
             print final
             if (not args.no_run):

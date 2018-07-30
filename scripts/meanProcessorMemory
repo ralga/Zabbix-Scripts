@@ -1,4 +1,4 @@
 #!/bin/bash
 
-./createMean.py -k vm.memory.pused[memoryUsedPercentage. -T "High memory utilization :" -t "Memory" -v '{$MEMORY_UTIL_MAX}'
+./createMean.py -k vm.memory.pused[memoryUsedPercentage -T "High memory utilization :" -t "Memory" -v '{$MEMORY_UTIL_MAX}'
 ./createMean.py -k system.cpu.util[hrProcessorLoad -T "High CPU utilization :" -t "CPU" -v '{$CPU_UTIL_MAX}'
