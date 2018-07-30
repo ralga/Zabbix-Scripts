@@ -1,0 +1,46 @@
+#!/usr/bin/python
+
+import webbrowser
+import subprocess
+import time
+import re
+import os
+
+#Define user as pi
+os.setuid(1000)
+
+#Should add new URL in the array with the syntaxe "'<URL>'":
+
+urls = []
+if (urls == []):
+    print ("Empty urls list")
+    exit()
+options_debug = "--display=:0 --new-window --disable-infobars"
+options = "--disable-infobars --display=:0 --new-window --kiosk"
+browser = "chromium-browser"
+command = browser + " " + options + " "
+
+os.system("sudo /home/pi/browser_rotate/clean")                         #Remove chromium crash message
+
+time.sleep(60)                                                          #Wait enough for startup to finish
+
+for url in urls:                                                        #Create web pages :
+    os.system(command + url + "&")
+    time.sleep(10)
+
+windows = subprocess.check_output(["wmctrl","-l"])                      #Get list of windows
+#print (windows)
+
+liste = re.split("\n",windows)                                          #Split in array
+pattern = re.compile("0x[0-9a-e]{8}.+ Chromium")                        #Create regex1 to get chromium window
+hexa = re.compile("0x[0-9a-e]{8}")                                      #Create regex2 to get window id
+ident = []
+for window in liste :                                                   #Apply regex and get id
+    if re.search(pattern,window):
+        ident.append(re.search(hexa,window).group(0))
+i=0;
+while True:
+    i = (i+1)%len(ident)
+    print ident[i]
+    os.system("sudo -u pi /home/pi/browser_rotate/setfocus " + str(ident[i]))#Set focus on window
+    time.sleep(60)
