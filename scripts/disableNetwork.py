@@ -168,4 +168,4 @@ for ip_int in range(int(start_ip), int(end_ip)):
             progress(i,total,action)
     else:
         print ("Host not found")
-    print ("Finished")
+    print ("\nFinished\n")
