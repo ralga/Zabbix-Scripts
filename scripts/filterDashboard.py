@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 #
 # import needed modules.
 # pyzabbix is needed, see https://github.com/lukecyca/pyzabbix
@@ -14,6 +15,8 @@ import sys
 from pprint import pprint
 from pyzabbix import ZabbixAPI
 import re
+
+regex = "^\[[0-9A-Z]{1,10}?\]"
 
 # define config helper function
 def ConfigSectionMap(section):
@@ -38,7 +41,7 @@ api = ""
 noverify = ""
 
 # Define commandline arguments
-parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,description='Ce programme a pour vocation de supprimer tout dashboard ne respectant pas les standards de nommage.\nAinsi, ne sera pas toléré et supprimé tout dashboard dont le nom ne commence par par [<TAG>] avec <TAG> une suite de charactères ne dépassant pas 10 caractères majuscules ou des chiffres', epilog="""
+parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,description='Ce programme a pour vocation de supprimer tout dashboard ne respectant pas les standards de nommage.\nAinsi, ne sera pas toléré et supprimé tout dashboard dont le nom ne commence pas par [<TAG>] avec <TAG> une suite de charactères ne dépassant pas 10 caractères majuscules ou des chiffres', epilog="""
 This program can use .ini style configuration files to retrieve the needed API connection information.
 To use this type of storage, create a conf file (the default is $HOME/.zbx.conf) that contains at least the [Zabbix API] section and any of the other parameters:
        
@@ -120,7 +123,7 @@ zapi.login(username, password)
 ##################################
 
 dashboards = zapi.dashboard.get()
-pattern = re.compile("^\[[0-9A-Z]{1,10}?\]")
+pattern = re.compile(regex)
 for board in dashboards :
     if (not re.search(pattern,board['name'])):
         print ("Will delete dashboard : \"" + board['name'] + 
